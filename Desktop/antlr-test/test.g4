@@ -1,5 +1,25 @@
-grammar UTL;
+grammar UT2L;
 
+ut2l: (function | comment | variable)* main comment*;
+
+comment:  (SINGLECOMM | MULTICOMM);
+
+variable: (global_var_type | regular_var_type) IDENTIFIER;
+
+global_var_type: (STATIC | SHARED) regular_var_type;
+
+regular_var_type:   INT | FLOAT | STRING | DOUBLE | STATIC |
+                    SHARED | BOOL | VOID |
+                    ORDER | CANDLE | EXCEPTION;
+
+function: func_dec exep? func_body;
+
+func_dec:   regular_var_type 
+            LPAR (variable)* RPAR;
+
+exep: THROW EXCEPTION;
+
+func_body: (variable | comment | )*;
 
 // tokens
 // keywords
@@ -50,14 +70,16 @@ DOUBLE: 'double';
 STATIC: 'static';
 SHARED: 'shared';
 BOOL: 'bool';
-EXCEPTION: 'Exception';
-TRADE: 'Trade';
-TEXT: 'Text';
 ORDER: 'Order';
 CANDLE: 'Candle';
+EXCEPTION: 'Exception';
+VOID: 'void';
+
+// parameters
+TRADE: 'Trade';
+TEXT: 'Text';
 
 // type values
-VOID_VAL: 'void';
 INT_VAL: [1-9][0-9]*;
 ZERO: [0];
 FLOAT_VAL: INT_VAL '.' [0-9]+ | ZERO '.' [0-9]*;
