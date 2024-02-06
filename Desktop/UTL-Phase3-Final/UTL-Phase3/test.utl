@@ -1,0 +1,19 @@
+int gloabaltest = 3;
+
+void OnInit(Trade t1) {
+    Order o3 = Order(SELL, 100, 100, 10);
+}
+
+void OnInit(Trade t1) {
+    string x = 2;
+}
+
+void OnStart(Trade t1) throw Exception {
+
+}
+
+void Main() {
+    Connect("username", "password");
+    Trade t1 = Observe("");
+    Trade t1 = Observe("");
+}
