@@ -5,4 +5,13 @@
 .field starts Ljava/util/ArrayList
 .field functions Ljava/util/ArrayList
 .field programMainDeclaration Ljava/util/MainDeclaration
-		istore/astore
+		istore 0
+		
+		  .method public static foo(I;)I
+		store ?
+		areturn
+		astore 1
+		astore 2
+		store ?
+		astore 3
+		astore 4
