@@ -248,7 +248,14 @@ public class codeGenerator extends Visitor<String> {
         addCommand("\n.method public static OnInit(L/trade?)V"); // check the document 
         //limits and stuff
 
-        onInitDeclaration.getTradeName().accept(this); //?
+        // onInitDeclaration.getTradeName().accept(this); //?
+        name_to_id.put(onInitDeclaration.getTradeName().getName(), stack_count);
+        name_to_type.put(onInitDeclaration.getTradeName().getName(), new TradeType());
+        stack_count++;
+
+        name_to_id.put(onInitDeclaration.getTradeName().getName(), stack_count);
+        stack_count++;
+        name_to_type.put(onInitDeclaration.getTradeName().getName(), new TradeType());
         for (Statement stmt : onInitDeclaration.getBody())
             stmt.accept(this);
 
@@ -273,7 +280,14 @@ public class codeGenerator extends Visitor<String> {
         addCommand("\n.method public static OnStart(L/trade?)V"); // check the document 
         //limits and stuff
 
-        onStartDeclaration.getTradeName().accept(this); //?
+        // onStartDeclaration.getTradeName().accept(this); //?
+        name_to_id.put(onStartDeclaration.getTradeName().getName(), stack_count);
+        name_to_type.put(onStartDeclaration.getTradeName().getName(), new TradeType());
+        stack_count++;
+
+        name_to_id.put(onStartDeclaration.getTradeName().getName(), stack_count);
+        stack_count++;
+        name_to_type.put(onStartDeclaration.getTradeName().getName(), new TradeType());
         for (Statement stmt : onStartDeclaration.getBody())
             stmt.accept(this);
 
@@ -295,88 +309,146 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(BinaryExpression binExp) {  //expression should return it's value instead of addcommanding it
         Expression lexp = binExp.getLeft();
-        lexp.accept(this);
-        // if (binExp.getBinaryOperator().equals(BinaryOperator.AND))
-        // {
-        //     addCommand("ifeq Label");
-        // }
         Expression rexp = binExp.getRight();
+
+        if (binExp.getBinaryOperator().equals(BinaryOperator.AND)) { // short circuit implementation
+            lexp.accept(this);
+            addCommand("ifeq Label_False_" + binExp.getLine());
+            rexp.accept(this);
+            addCommand("ifeq Label_False_" + binExp.getLine());
+            addCommand("iconst_1");
+            addCommand("goto Label_" + binExp.getLine()+"_End");
+            addCommand("Label_False_" + binExp.getLine()+":");
+            addCommand("iconst_0");
+            addCommand("Label_" + binExp.getLine()+"_End:");
+            return null;
+        }
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.OR)) {
+            lexp.accept(this);
+            addCommand("ifeq Label_True_" + binExp.getLine());
+            rexp.accept(this);
+            addCommand("ifeq Label_True_" + binExp.getLine());
+            addCommand("iconst_0");
+            addCommand("goto Label_" + binExp.getLine()+"_End");
+            addCommand("Label_True_" + binExp.getLine()+":");
+            addCommand("iconst_1");
+            addCommand("Label_" + binExp.getLine()+"_End:");
+            return null;
+        } 
+
+        lexp.accept(this);
         rexp.accept(this);
         Type type = rexp.accept(expressionTypeChecker);
 
-        if (binExp.getBinaryOperator().equals(BinaryOperator.PLUS))
-        {
+        if (binExp.getBinaryOperator().equals(BinaryOperator.PLUS)) {
             if (type instanceof IntType)
                 addCommand("iadd");
             else if (type instanceof FloatType)
                 addCommand("fadd");
             else addCommand(";wrong format" + lexp.toString());
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.MINUS))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.MINUS)) {
             if (type instanceof IntType)
                 addCommand("isub");
             else if (type instanceof FloatType)
                 addCommand("fsub");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.MULT))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.MULT)) {
             if (type instanceof IntType)
                 addCommand("imul");
             else if (type instanceof FloatType)
                 addCommand("fmul");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV)) {
             if (type instanceof IntType)
                 addCommand("idiv");
             else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.MOD))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.MOD)) {
             if (type instanceof IntType)
                 addCommand("irem");
             else if (type instanceof FloatType)
                 addCommand("frem");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_AND))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_AND)) {
             if (type instanceof IntType)
                 addCommand("iand");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_OR))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_OR)) {
             if (type instanceof IntType)
                 addCommand("ior");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_XOR))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_XOR)) {
             if (type instanceof IntType)
                 addCommand("ixor");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.L_SHIFT))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.L_SHIFT)) {
             if (type instanceof IntType)
                 addCommand("ishl");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.R_SHIFT))
-        {
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.R_SHIFT)) {
             if (type instanceof IntType)
                 addCommand("ishr");
             else addCommand(";wrong format");
         }
 
         // binary ret
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.LT))
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.LT)) {
+            addCommand("if_icmplt Label_" + binExp.getLine());
+            addCommand("iconst_0");
+            addCommand("goto Label_" + binExp.getLine() + "_End:");
+            addCommand("Label_" + binExp.getLine() + ":");
+            addCommand("iconst_1");
+            addCommand("if_icmplt Label_" + binExp.getLine() + "_End:");
+        }
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.GT)) {
+            
+            addCommand("if_icmpgt Label_" + binExp.getLine());
+            addCommand("iconst_0");
+            addCommand("goto Label_" + binExp.getLine() + "_End:");
+            addCommand("Label_" + binExp.getLine() + ":");
+            addCommand("iconst_1");
+            addCommand("if_icmplt Label_" + binExp.getLine() + "_End:");
+        }
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.EQ)) {
+            
+            addCommand("if_icmpeq Label_" + binExp.getLine());
+            addCommand("iconst_0");
+            addCommand("goto Label_" + binExp.getLine() + "_End:");
+            addCommand("Label_" + binExp.getLine() + ":");
+            addCommand("iconst_1");
+            addCommand("if_icmplt Label_" + binExp.getLine() + "_End:");
+        }
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.NEQ)) {
+            
+            addCommand("if_icmpneq Label_" + binExp.getLine());
+            addCommand("iconst_0");
+            addCommand("goto Label_" + binExp.getLine() + "_End:");
+            addCommand("Label_" + binExp.getLine() + ":");
+            addCommand("iconst_1");
+            addCommand("if_icmplt Label_" + binExp.getLine() + "_End:");
+        }
+
+        // assign
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.ASSIGN)) // fuck we need to move varcall command to here
+        {
+            if (type instanceof IntType)
+                addCommand("idiv");
+            else if (type instanceof FloatType)
+                addCommand("fdiv");
+                
+            else addCommand(";wrong format");
+        }
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.ADD_ASSIGN))
         {
             if (type instanceof IntType)
                 addCommand("idiv");
@@ -384,7 +456,7 @@ public class codeGenerator extends Visitor<String> {
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.GT))
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.SUB_ASSIGN))
         {
             if (type instanceof IntType)
                 addCommand("idiv");
@@ -392,7 +464,7 @@ public class codeGenerator extends Visitor<String> {
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.EQ))
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.MUL_ASSIGN))
         {
             if (type instanceof IntType)
                 addCommand("idiv");
@@ -400,7 +472,7 @@ public class codeGenerator extends Visitor<String> {
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.NEQ))
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV_ASSIGN))
         {
             if (type instanceof IntType)
                 addCommand("idiv");
@@ -408,47 +480,7 @@ public class codeGenerator extends Visitor<String> {
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.ASSIGN)) //?
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
+        else if (binExp.getBinaryOperator().equals(BinaryOperator.MOD_ASSIGN))
         {
             if (type instanceof IntType)
                 addCommand("idiv");
@@ -532,7 +564,8 @@ public class codeGenerator extends Visitor<String> {
     public String visit(VarDeclaration varDeclaration) {
         //todo
 
-        name_to_id.put(varDeclaration.getIdentifier().getName(), stack_count++);
+        name_to_id.put(varDeclaration.getIdentifier().getName(), stack_count);
+        stack_count++;
         name_to_type.put(varDeclaration.getIdentifier().getName(), varDeclaration.getType());
 
         if (varDeclaration.getRValue()!= null)
@@ -662,6 +695,13 @@ public class codeGenerator extends Visitor<String> {
         //todo
 
         addCommand("load " + name_to_id.get(id.getName()) + id.getName());
+        return commands;
+    }
+
+    @Override
+    public String visit(TradeValue trade) {
+        String commands = "";
+        //todo        
         return commands;
     }
 

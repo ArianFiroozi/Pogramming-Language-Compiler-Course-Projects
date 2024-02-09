@@ -26,7 +26,20 @@
 			iconst_1
 	Label_8End:
 		bipush 0
-		idiv
+		if_icmpeq Label_8
+		iconst_0
+		goto Label_8_End:
+	Label_8:
+		iconst_1
+		if_icmplt Label_8_End:
+		ifeq Label_False_8
+		bipush 1
+		ifeq Label_False_8
+		iconst_1
+		goto Label_8_End
+	Label_False_8:
+		iconst_0
+	Label_8_End:
 		load 2x
 		bipush 1
 		store ?null
@@ -38,7 +51,12 @@
 		Label_End_8:
 		load 3y
 		bipush 1
-		idiv
+		if_icmpeq Label_15
+		iconst_0
+		goto Label_15_End:
+	Label_15:
+		iconst_1
+		if_icmplt Label_15_End:
 		load 2x
 		bipush 1
 		store ?null
@@ -50,20 +68,17 @@
 		ireturn
 		
 		.method public static OnInit(L/trade?)V
-		load nullt1
 		bipush 100
 		bipush 100
 		bipush 10
 		invokevirtual Program/Order(args?)ret?
-		astore 1
+		astore 3
 		
 		.method public static OnInit(L/trade?)V
-		load nullOnInit_t1$
 		bipush 2
-		astore 1
+		astore 3
 		
 		.method public static OnStart(L/trade?)V
-		load nullt1
 		
 		.method public static main()V
 		bipush 4
