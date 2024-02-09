@@ -47,7 +47,8 @@ public class codeGenerator extends Visitor<String> {
     private String outputPath;
     private FileWriter currentFile;
     private FunctionDeclaration currentMethod;
-    private Dictionary<String, Integer> hash_root;
+    private Dictionary<String, Integer> name_to_id;
+    private Dictionary<String, Type> name_to_type;
     Integer stack_count;
 
     public codeGenerator() {
@@ -144,7 +145,9 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(Program program) {
         //todo
-        hash_root = new Hashtable<>();
+        // we may need a base stack count
+        name_to_id = new Hashtable<>();
+        name_to_type = new Hashtable<>();
         createFile(program.toString());
 
         addCommand(".class public Program");
@@ -177,18 +180,21 @@ public class codeGenerator extends Visitor<String> {
         // invoke
         int old_stack_count = stack_count;
         stack_count = 1;
-        Dictionary<String, Integer> old_root = hash_root;
-        hash_root = new Hashtable<>();
+        Dictionary<String, Integer> old_n2i = name_to_id;
+        Dictionary<String, Type> old_n2t = name_to_type;
+        name_to_id = new Hashtable<>();
+        name_to_type = new Hashtable<>();
 
         String args = "";
         for (VarDeclaration arg : functionDeclaration.getArgs())
         {
             args = args.concat(makeTypeSignature(arg.getType()) + ";");
-            hash_root.put(arg.getIdentifier().getName(), stack_count);
+            name_to_id.put(arg.getIdentifier().getName(), stack_count);
+            name_to_type.put(arg.getIdentifier().getName(), arg.getType());
             stack_count += 1;
         }
 
-        addCommand("\n  .method public static " + functionDeclaration.getName().getName() + "(" + 
+        addCommand("\n.method public static " + functionDeclaration.getName().getName() + "(" + 
                      args + ")" + makeTypeSignature(functionDeclaration.getReturnType())); 
         //limits and stuff
 
@@ -197,7 +203,8 @@ public class codeGenerator extends Visitor<String> {
         for (Statement stmt : functionDeclaration.getBody())
             stmt.accept(this);
 
-        hash_root = old_root;
+        name_to_id = old_n2i;
+        name_to_type = old_n2t;
         stack_count = old_stack_count;
         return null;
     }
@@ -206,8 +213,22 @@ public class codeGenerator extends Visitor<String> {
     public String visit(MainDeclaration mainDeclaration) {
         // todo    
         // invoke
+        int old_stack_count = stack_count;
+        stack_count = 1;
+        Dictionary<String, Integer> old_n2i = name_to_id;
+        Dictionary<String, Type> old_n2t = name_to_type;
+        name_to_id = new Hashtable<>();
+        name_to_type = new Hashtable<>();
+
+        addCommand("\n.method public static main()V"); 
+        //limits and stuff
+
         for (Statement stmt : mainDeclaration.getBody())
             stmt.accept(this);
+
+        name_to_id = old_n2i;
+        name_to_type = old_n2t;
+        stack_count = old_stack_count;
         return null;
     }
 
@@ -216,8 +237,23 @@ public class codeGenerator extends Visitor<String> {
         // todo    
         // invoke    
         //smth with trades
+        int old_stack_count = stack_count;
+        stack_count = 1;
+        Dictionary<String, Integer> old_n2i = name_to_id;
+        Dictionary<String, Type> old_n2t = name_to_type;
+        name_to_id = new Hashtable<>();
+        name_to_type = new Hashtable<>();
+
+        addCommand("\n.method public static OnInit(L/trade?)V"); // check the document 
+        //limits and stuff
+
+        onInitDeclaration.getTradeName().accept(this); //?
         for (Statement stmt : onInitDeclaration.getBody())
             stmt.accept(this);
+
+        name_to_id = old_n2i;
+        name_to_type = old_n2t;
+        stack_count = old_stack_count;
         return null;
     }
 
@@ -226,8 +262,23 @@ public class codeGenerator extends Visitor<String> {
         // todo    
         // invoke    
         //smth with trades
+        int old_stack_count = stack_count;
+        stack_count = 1;
+        Dictionary<String, Integer> old_n2i = name_to_id;
+        Dictionary<String, Type> old_n2t = name_to_type;
+        name_to_id = new Hashtable<>();
+        name_to_type = new Hashtable<>();
+
+        addCommand("\n.method public static OnStart(L/trade?)V"); // check the document 
+        //limits and stuff
+
+        onStartDeclaration.getTradeName().accept(this); //?
         for (Statement stmt : onStartDeclaration.getBody())
             stmt.accept(this);
+
+        name_to_id = old_n2i;
+        name_to_type = old_n2t;
+        stack_count = old_stack_count;
         return null;
     }
 
@@ -250,74 +301,75 @@ public class codeGenerator extends Visitor<String> {
         // }
         Expression rexp = binExp.getRight();
         rexp.accept(this);
+        Type type = rexp.accept(expressionTypeChecker);
 
         if (binExp.getBinaryOperator().equals(BinaryOperator.PLUS))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("iadd");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fadd");
-            else addCommand(";wrong format");
+            else addCommand(";wrong format" + lexp.toString());
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.MINUS))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("isub");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fsub");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.MULT))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("imul");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fmul");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.MOD))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("irem");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("frem");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_AND))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("iand");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_OR))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("ior");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.BIT_XOR))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("ixor");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.L_SHIFT))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("ishl");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.R_SHIFT))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("ishr");
             else addCommand(";wrong format");
         }
@@ -325,81 +377,81 @@ public class codeGenerator extends Visitor<String> {
         // binary ret
         else if (binExp.getBinaryOperator().equals(BinaryOperator.LT))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.GT))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.EQ))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.NEQ))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.ASSIGN)) //?
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
         else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV))
         {
-            if (lexp.getType() instanceof IntType)
+            if (type instanceof IntType)
                 addCommand("idiv");
-            else if (lexp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
                 addCommand("fdiv");
             else addCommand(";wrong format");
         }
@@ -416,17 +468,19 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(VarDeclaration varDeclaration) {
         //todo
-        hash_root.put(varDeclaration.getIdentifier().getName(), stack_count++);
+
+        name_to_id.put(varDeclaration.getIdentifier().getName(), stack_count++);
+        name_to_type.put(varDeclaration.getIdentifier().getName(), varDeclaration.getType());
 
         if (varDeclaration.getRValue()!= null)
         {   //arrays unhandled
             varDeclaration.getRValue().accept(this);
             if (varDeclaration.getType() instanceof IntType || varDeclaration.getType() instanceof BoolType)
-                addCommand("istore " + hash_root.get(varDeclaration.getIdentifier().getName()));
+                addCommand("istore " + name_to_id.get(varDeclaration.getIdentifier().getName()));
             else if (varDeclaration.getType() instanceof FloatType)
-                addCommand("fstore " + hash_root.get(varDeclaration.getIdentifier().getName()));
+                addCommand("fstore " + name_to_id.get(varDeclaration.getIdentifier().getName()));
             else
-                addCommand("astore " + hash_root.get(varDeclaration.getIdentifier().getName()));
+                addCommand("astore " + name_to_id.get(varDeclaration.getIdentifier().getName()));
         }
         return null;
     }
@@ -434,9 +488,12 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(AssignStmt assignmentStmt) {
         //todo
-        assignmentStmt.getRValue();
+        assignmentStmt.getLValue().accept(this);
+        assignmentStmt.getRValue().accept(this);
 
-        addCommand("store ?");
+        if (assignmentStmt.getLValue().getType() instanceof IntType) // wtf
+            addCommand("istore " + name_to_id.get(assignmentStmt.getLValue().toString()));
+        addCommand("store ?" + name_to_id.get(assignmentStmt.getLValue().toString()));
 
         return null;
     }
@@ -477,16 +534,16 @@ public class codeGenerator extends Visitor<String> {
         String cond_code= cond.accept(this);
         String cond_label = "Label_cond_"+String.valueOf(while_stmt.getLine());
         String end_label = "Label_end_"+String.valueOf(while_stmt.getLine());
-        command.concat(cond_label+":\n");
-        command.concat(cond_code+"\n");
-        command.concat("ifeq "+ end_label);
+        command = command.concat(cond_label+":\n");
+        command = command.concat(cond_code+"\n");
+        command = command.concat("ifeq "+ end_label);
         for (Statement stmt : while_stmt.getBody())
         {
-            command.concat(stmt.accept(this)+"\n");
+            command = command.concat(stmt.accept(this)+"\n");
             
         }
-        command.concat("goto " + cond_label);
-        command.concat(end_label+":\n");
+        command = command.concat("goto " + cond_label);
+        command = command.concat(end_label+":\n");
 
         addCommand(command);
         return command;
@@ -497,6 +554,14 @@ public class codeGenerator extends Visitor<String> {
         //todo
         // invoke
             
+        return null;
+    }
+
+    @Override
+    public String visit(FunctionCall funcCall) {
+        //todo
+        // invoke
+        
         return null;
     }
 
@@ -514,14 +579,25 @@ public class codeGenerator extends Visitor<String> {
         }
         else {
             // load the return exp ??
-
-
             returnStmt.getReturnedExpr().accept(this);
+            if (type instanceof IntType || type instanceof BoolType)
+                addCommand("ireturn");
+            else if (type instanceof FloatType)
+                addCommand("freturn");
+            else
+                addCommand("areturn");
 
-            addCommand("areturn");
             //todo add commands to return
         }
         return null;
+    }
+    @Override
+    public String visit(Identifier id) {
+        String commands = "";
+        //todo
+
+        addCommand("load " + name_to_id.get(id.getName()) + id.getName());
+        return commands;
     }
 
     @Override
@@ -535,18 +611,18 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(IntValue intValue) {
         String commands = "";
-        commands += "bipush " + String.valueOf(intValue.getConstant());
-        
-        System.out.println("int");
+        commands = commands.concat("bipush " + String.valueOf(intValue.getConstant()));
+        addCommand(commands);
+        // System.out.println("int");
         return commands;
     }
 
     @Override
     public String visit(BoolValue boolValue) {
-        String commands = "";
         //todo
-        System.out.println("bool");
-        return commands;
+        if (boolValue.getConstant()) return "iconst_0";
+        // System.out.println("bool");
+        return "iconst_1";
     }
 
     @Override
