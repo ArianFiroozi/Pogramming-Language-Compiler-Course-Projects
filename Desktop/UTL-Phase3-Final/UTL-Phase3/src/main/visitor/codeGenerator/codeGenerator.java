@@ -13,6 +13,7 @@ import main.symbolTable.itemException.ItemNotFoundException;
 import main.symbolTable.symbolTableItems.*;
 import main.visitor.Visitor;
 import main.ast.node.expression.operators.BinaryOperator;
+import main.ast.node.expression.operators.UnaryOperator;
 import main.ast.node.expression.values.*;
 import main.ast.type.*;
 import main.ast.type.primitiveType.*;
@@ -462,6 +463,68 @@ public class codeGenerator extends Visitor<String> {
     public String visit(UnaryExpression unExp)
     {
         System.out.println("uni");
+        unExp.getOperand().accept(this);
+        Type type = unExp.getOperand().getType(); //can't get the type
+        if (unExp.getUnaryOperator().equals(UnaryOperator.INC))
+        {
+            // if (type instanceof IntType)
+            // {
+                addCommand("iinc");//wrong format
+            // }
+            // else
+            // {
+            //     addCommand(";wrong format");
+            // }
+        }
+        else if (unExp.getUnaryOperator().equals(UnaryOperator.DEC))
+        {
+            // if (type instanceof IntType)
+            // {
+                addCommand("iconst_1");
+                addCommand("isub");
+            // }
+            // else
+            // {
+            //     addCommand(";wrong format");
+            // }
+        }
+        else if (unExp.getUnaryOperator().equals(UnaryOperator.NOT))
+        {
+            // if (type instanceof IntType)
+            // {
+                addCommand("ifeq Label_" + unExp.getLine());
+                addCommand("pop");
+                addCommand("iconst_0");
+                addCommand("goto Label_" + unExp.getLine() + "End");
+                addCommand("Label_" + unExp.getLine()+ ":");
+                addCommand("\tpop");
+                addCommand("\ticonst_1");
+                addCommand("Label_" + unExp.getLine() + "End:");
+            // }
+            // else
+            // {
+            //     addCommand(";wrong format" + unExp.getOperand().toString());
+            // }
+        }
+        else if (unExp.getUnaryOperator().equals(UnaryOperator.MINUS))
+        {
+            if (unExp.getType() instanceof IntType)
+            {
+                addCommand("ineg");
+            }
+            else if (unExp.getType() instanceof FloatType)
+            {
+                addCommand("fneg");
+            }
+            else
+            {
+                addCommand(";wrong format");
+            }
+        }
+        else if (unExp.getUnaryOperator().equals(UnaryOperator.BIT_NOT))
+        {
+            addCommand("ineg");
+        }
         return null;
     }
 
@@ -561,7 +624,8 @@ public class codeGenerator extends Visitor<String> {
     public String visit(FunctionCall funcCall) {
         //todo
         // invoke
-        
+        for (Expression arg : funcCall.getArgs()) arg.accept(this);
+        addCommand("invokevirtual Program/" + funcCall.getFunctionName().getName() + "(args?)ret?");
         return null;
     }
 
@@ -591,6 +655,7 @@ public class codeGenerator extends Visitor<String> {
         }
         return null;
     }
+    
     @Override
     public String visit(Identifier id) {
         String commands = "";
@@ -620,9 +685,12 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(BoolValue boolValue) {
         //todo
-        if (boolValue.getConstant()) return "iconst_0";
+        String command;
+        if (boolValue.getConstant()) command = "iconst_1";
         // System.out.println("bool");
-        return "iconst_1";
+        else command = "iconst_0";
+        addCommand(command);
+        return command;
     }
 
     @Override

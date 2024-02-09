@@ -15,6 +15,16 @@
 		iadd
 		store ?null
 		load 3y
+		iinc
+		load 3y
+		ifeq Label_8
+		pop
+		iconst_0
+		goto Label_8End
+	Label_8:
+			pop
+			iconst_1
+	Label_8End:
 		bipush 0
 		idiv
 		load 2x
@@ -41,6 +51,10 @@
 		
 		.method public static OnInit(L/trade?)V
 		load nullt1
+		bipush 100
+		bipush 100
+		bipush 10
+		invokevirtual Program/Order(args?)ret?
 		astore 1
 		
 		.method public static OnInit(L/trade?)V
@@ -56,5 +70,8 @@
 		bipush 5
 		iadd
 		istore 1
+		invokevirtual Program/Connect(args?)ret?
+		invokevirtual Program/Observe(args?)ret?
 		astore 2
+		invokevirtual Program/Observe(args?)ret?
 		astore 3
