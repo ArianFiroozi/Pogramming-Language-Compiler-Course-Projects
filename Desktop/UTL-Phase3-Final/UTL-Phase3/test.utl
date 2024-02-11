@@ -3,7 +3,8 @@ int global_test = 3;
 int foo(int x)
 {
  int y;
- y = x + 5;
+ y= -y;
+ y += 5;
  y++;
  if (!y == 0 && 1){
     x+=1;
@@ -17,6 +18,7 @@ int foo(int x)
  return 0;
 }
 void OnInit(Trade t1) {
+    foo(3);
     Order o3 = Order(SELL, 100, 100, 10);
 }
 

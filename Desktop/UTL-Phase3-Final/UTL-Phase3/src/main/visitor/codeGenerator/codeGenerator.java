@@ -50,6 +50,7 @@ public class codeGenerator extends Visitor<String> {
     private FunctionDeclaration currentMethod;
     private Dictionary<String, Integer> name_to_id;
     private Dictionary<String, Type> name_to_type;
+    private Dictionary<String, ArrayList<Type>> funcList;
     Integer stack_count;
 
     public codeGenerator() {
@@ -114,7 +115,7 @@ public class codeGenerator extends Visitor<String> {
             if(command.startsWith("Label_"))
                 this.currentFile.write("\t" + command + "\n");
             else if(command.startsWith("."))
-                this.currentFile.write(command + "\n");
+                this.currentFile.write("\n" + command + "\n");
             else
                 this.currentFile.write("\t\t" + command + "\n");
             System.out.println(command);
@@ -149,6 +150,7 @@ public class codeGenerator extends Visitor<String> {
         // we may need a base stack count
         name_to_id = new Hashtable<>();
         name_to_type = new Hashtable<>();
+        funcList = new Hashtable<>();
         createFile(program.toString());
 
         addCommand(".class public Program");
@@ -161,8 +163,7 @@ public class codeGenerator extends Visitor<String> {
         addField("programMainDeclaration", "Ljava/util/MainDeclaration"); // not sure about type
         
         stack_count = 0;
-        // SymbolTable.root = new SymbolTable();
-        // SymbolTable.push(SymbolTable.root);
+        
         for (VarDeclaration varDeclaration : program.getVars())
             varDeclaration.accept(this);
         for (FunctionDeclaration functionDeclaration : program.getFunctions())
@@ -186,18 +187,24 @@ public class codeGenerator extends Visitor<String> {
         name_to_id = new Hashtable<>();
         name_to_type = new Hashtable<>();
 
+        ArrayList<Type> argTypes = new ArrayList<>();
+
+        argTypes.add(functionDeclaration.getReturnType());
         String args = "";
         for (VarDeclaration arg : functionDeclaration.getArgs())
         {
+            argTypes.add(arg.getType());
             args = args.concat(makeTypeSignature(arg.getType()) + ";");
             name_to_id.put(arg.getIdentifier().getName(), stack_count);
             name_to_type.put(arg.getIdentifier().getName(), arg.getType());
             stack_count += 1;
         }
 
-        addCommand("\n.method public static " + functionDeclaration.getName().getName() + "(" + 
+        addCommand(".method public static " + functionDeclaration.getName().getName() + "(" + 
                      args + ")" + makeTypeSignature(functionDeclaration.getReturnType())); 
         //limits and stuff
+
+        funcList.put(functionDeclaration.getName().getName(), argTypes);
 
         for (VarDeclaration varDeclaration : functionDeclaration.getArgs())
             varDeclaration.accept(this);
@@ -221,7 +228,7 @@ public class codeGenerator extends Visitor<String> {
         name_to_id = new Hashtable<>();
         name_to_type = new Hashtable<>();
 
-        addCommand("\n.method public static main()V"); 
+        addCommand(".method public static main()V"); 
         //limits and stuff
 
         for (Statement stmt : mainDeclaration.getBody())
@@ -236,8 +243,7 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(OnInitDeclaration onInitDeclaration) {
         // todo    
-        // invoke    
-        //smth with trades
+        
         int old_stack_count = stack_count;
         stack_count = 1;
         Dictionary<String, Integer> old_n2i = name_to_id;
@@ -245,10 +251,9 @@ public class codeGenerator extends Visitor<String> {
         name_to_id = new Hashtable<>();
         name_to_type = new Hashtable<>();
 
-        addCommand("\n.method public static OnInit(L/trade?)V"); // check the document 
+        addCommand(".method public static OnInit(L/trade?)V"); // check the document 
         //limits and stuff
 
-        // onInitDeclaration.getTradeName().accept(this); //?
         name_to_id.put(onInitDeclaration.getTradeName().getName(), stack_count);
         name_to_type.put(onInitDeclaration.getTradeName().getName(), new TradeType());
         stack_count++;
@@ -268,8 +273,7 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(OnStartDeclaration onStartDeclaration) {
         // todo    
-        // invoke    
-        //smth with trades
+        
         int old_stack_count = stack_count;
         stack_count = 1;
         Dictionary<String, Integer> old_n2i = name_to_id;
@@ -277,10 +281,9 @@ public class codeGenerator extends Visitor<String> {
         name_to_id = new Hashtable<>();
         name_to_type = new Hashtable<>();
 
-        addCommand("\n.method public static OnStart(L/trade?)V"); // check the document 
+        addCommand(".method public static OnStart(L/trade?)V"); // check the document 
         //limits and stuff
 
-        // onStartDeclaration.getTradeName().accept(this); //?
         name_to_id.put(onStartDeclaration.getTradeName().getName(), stack_count);
         name_to_type.put(onStartDeclaration.getTradeName().getName(), new TradeType());
         stack_count++;
@@ -438,113 +441,56 @@ public class codeGenerator extends Visitor<String> {
             addCommand("if_icmplt Label_" + binExp.getLine() + "_End:");
         }
 
-        // assign
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.ASSIGN)) // fuck we need to move varcall command to here
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-                
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.ADD_ASSIGN))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.SUB_ASSIGN))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.MUL_ASSIGN))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.DIV_ASSIGN))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
-        else if (binExp.getBinaryOperator().equals(BinaryOperator.MOD_ASSIGN))
-        {
-            if (type instanceof IntType)
-                addCommand("idiv");
-            else if (type instanceof FloatType)
-                addCommand("fdiv");
-            else addCommand(";wrong format");
-        }
         return null;
     }
 
     @Override
     public String visit(UnaryExpression unExp)
     {
-        System.out.println("uni");
+        String name = ((Identifier)unExp.getOperand()).getName();
         unExp.getOperand().accept(this);
-        Type type = unExp.getOperand().getType(); //can't get the type
+        Type type = name_to_type.get(name);
         if (unExp.getUnaryOperator().equals(UnaryOperator.INC))
         {
-            // if (type instanceof IntType)
-            // {
-                addCommand("iinc");//wrong format
-            // }
-            // else
-            // {
-            //     addCommand(";wrong format");
-            // }
+            if (type instanceof IntType)
+            {
+                addCommand("iinc");
+            }
+            else
+            {
+                addCommand(";wrong format");
+            }
         }
         else if (unExp.getUnaryOperator().equals(UnaryOperator.DEC))
         {
-            // if (type instanceof IntType)
-            // {
+            if (type instanceof IntType)
+            {
                 addCommand("iconst_1");
                 addCommand("isub");
-            // }
-            // else
-            // {
-            //     addCommand(";wrong format");
-            // }
+            }
+            else
+            {
+                addCommand(";wrong format");
+            }
         }
         else if (unExp.getUnaryOperator().equals(UnaryOperator.NOT))
         {
-            // if (type instanceof IntType)
-            // {
                 addCommand("ifeq Label_" + unExp.getLine());
                 addCommand("pop");
                 addCommand("iconst_0");
-                addCommand("goto Label_" + unExp.getLine() + "End");
+                addCommand("goto Label_" + unExp.getLine() + "_End");
                 addCommand("Label_" + unExp.getLine()+ ":");
-                addCommand("\tpop");
-                addCommand("\ticonst_1");
-                addCommand("Label_" + unExp.getLine() + "End:");
-            // }
-            // else
-            // {
-            //     addCommand(";wrong format" + unExp.getOperand().toString());
-            // }
+                addCommand("pop");
+                addCommand("iconst_1");
+                addCommand("Label_" + unExp.getLine() + "_End:");
         }
         else if (unExp.getUnaryOperator().equals(UnaryOperator.MINUS))
         {
-            if (unExp.getType() instanceof IntType)
+            if (type instanceof IntType)
             {
                 addCommand("ineg");
             }
-            else if (unExp.getType() instanceof FloatType)
+            else if (type instanceof FloatType)
             {
                 addCommand("fneg");
             }
@@ -586,10 +532,15 @@ public class codeGenerator extends Visitor<String> {
         //todo
         assignmentStmt.getLValue().accept(this);
         assignmentStmt.getRValue().accept(this);
+        Identifier id = (Identifier)assignmentStmt.getLValue();
 
-        if (assignmentStmt.getLValue().getType() instanceof IntType) // wtf
-            addCommand("istore " + name_to_id.get(assignmentStmt.getLValue().toString()));
-        addCommand("store ?" + name_to_id.get(assignmentStmt.getLValue().toString()));
+        // cannot assign with operators due to incomplete grammar 
+        if (name_to_type.get(id.getName()) instanceof IntType || name_to_type.get(id.getName()) instanceof BoolType)
+            addCommand("istore " + name_to_id.get(id.getName()));
+        else if (name_to_type.get(id.getName()) instanceof FloatType)
+            addCommand("fstore " + name_to_id.get(id.getName()));
+        else 
+            addCommand("astore " + name_to_id.get(id.getName()));
 
         return null;
     }
@@ -611,13 +562,13 @@ public class codeGenerator extends Visitor<String> {
         {
             command.concat(stmt.accept(this)+"\n");
         }
-        command=command.concat("goto "+ "Label_End_"+String.valueOf(conditionalStmt.getLine()));
+        command=command.concat("goto "+ "Label_" + conditionalStmt.getLine() + "_End");
         command = command.concat(else_label_name+":\n");
         for (Statement stmt : conditionalStmt.getElseBody())
         {
             command.concat(stmt.accept(this)+"\n");
         }
-        command=command.concat("Label_End_"+String.valueOf(conditionalStmt.getLine())+":\n");
+        command=command.concat("Label_" + conditionalStmt.getLine() + "_End:");
         addCommand(command);
         return command;
     }
@@ -627,21 +578,27 @@ public class codeGenerator extends Visitor<String> {
     {
         String command = "";
         Expression cond = while_stmt.getCondition();
+        String cond_label = "Label_Cond_" + String.valueOf(while_stmt.getLine());
+        String end_label = "Label_" + while_stmt.getLine() + "_End";
+        // command = command.concat(cond_label+":\n");
+        addCommand(cond_label + ":");
         String cond_code= cond.accept(this);
-        String cond_label = "Label_cond_"+String.valueOf(while_stmt.getLine());
-        String end_label = "Label_end_"+String.valueOf(while_stmt.getLine());
-        command = command.concat(cond_label+":\n");
-        command = command.concat(cond_code+"\n");
-        command = command.concat("ifeq "+ end_label);
+        // command = command.concat(cond_code+"\n");
+        // addCommand(cond_code);
+        // command = command.concat("ifeq "+ end_label);
+        addCommand("ifeq" + end_label);
+
         for (Statement stmt : while_stmt.getBody())
         {
             command = command.concat(stmt.accept(this)+"\n");
             
         }
-        command = command.concat("goto " + cond_label);
-        command = command.concat(end_label+":\n");
+        // command = command.concat("goto " + cond_label);
+        addCommand("goto" + cond_label);
+        // command = command.concat(end_label+":\n");
+        addCommand(end_label + ":");
 
-        addCommand(command);
+        // addCommand(command);
         return command;
     }
 
@@ -657,8 +614,24 @@ public class codeGenerator extends Visitor<String> {
     public String visit(FunctionCall funcCall) {
         //todo
         // invoke
-        for (Expression arg : funcCall.getArgs()) arg.accept(this);
-        addCommand("invokevirtual Program/" + funcCall.getFunctionName().getName() + "(args?)ret?");
+        for (Expression arg : funcCall.getArgs()) 
+            arg.accept(this);
+
+        String ret_type = "";
+        String args = "";
+        if (funcList.get(funcCall.getFunctionName().getName()) != null)
+        {
+            ret_type = makeTypeSignature(funcList.get(funcCall.getFunctionName().getName()).get(0));
+            for (Type argType : funcList.get(funcCall.getFunctionName().getName()).subList(1, funcList.get(funcCall.getFunctionName().getName()).size()))
+                args = args.concat(makeTypeSignature(argType) + ";");
+        }
+        else
+        { //maybe predefined ??
+            ret_type = "?";
+            args = "?";
+        }
+
+        addCommand("invokevirtual Program/" + funcCall.getFunctionName().getName() + "(" + args + ")" + ret_type);
         return null;
     }
 
@@ -716,20 +689,26 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(IntValue intValue) {
         String commands = "";
-        commands = commands.concat("bipush " + String.valueOf(intValue.getConstant()));
+        if (intValue.getConstant() <= 3)
+            commands = commands.concat("iconst_" + intValue.getConstant());
+        else
+            commands = commands.concat("bipush " + intValue.getConstant());
+
         addCommand(commands);
         // System.out.println("int");
         return commands;
     }
 
     @Override
-    public String visit(BoolValue boolValue) {
+    public String visit(BoolValue boolValue) {  
         //todo
         String command;
-        if (boolValue.getConstant()) command = "iconst_1";
-        // System.out.println("bool");
-        else command = "iconst_0";
+        if (boolValue.getConstant()) 
+            command = "iconst_1";
+        else 
+            command = "iconst_0";
         addCommand(command);
+
         return command;
     }
 
@@ -737,6 +716,11 @@ public class codeGenerator extends Visitor<String> {
     public String visit(StringValue stringValue) {
         String commands = "";
         //todo
+        commands = "ldc " + stringValue.getConstant(); 
+        addCommand(commands);
+        // addCommand("astore " + stack_count);
+        // stack_count++;
+
         System.out.println("string");
         return commands;
     }
