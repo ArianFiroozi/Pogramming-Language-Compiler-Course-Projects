@@ -22,10 +22,11 @@ public class UTL {
         nameAnalyzer.visit(program);
         TypeAnalyzer typeAnalyzer = new TypeAnalyzer();
         typeAnalyzer.visit(program);
-        if (!typeAnalyzer.typeErrors.isEmpty()){
-            for(CompileError compileError: typeAnalyzer.typeErrors)
+        if (!typeAnalyzer.typeErrors.isEmpty()) {
+            for (CompileError compileError : typeAnalyzer.typeErrors)
                 System.out.println(compileError.getMessage());
         }
+
         codeGenerator codeGen = new codeGenerator();
         codeGen.visit(program);
     }

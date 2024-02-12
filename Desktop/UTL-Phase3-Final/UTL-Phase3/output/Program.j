@@ -1,107 +1,100 @@
-
-.class public Program
-
-.super main/ast/node/Node
-
+.class public UTL
+.super java/lang/Object
 .field vars Ljava/util/ArrayList
-
 .field inits Ljava/util/ArrayList
-
 .field starts Ljava/util/ArrayList
-
 .field functions Ljava/util/ArrayList
-
 .field programMainDeclaration Ljava/util/MainDeclaration
-		iconst_3
-		istore 0
+.field balance I
+.field tick_counts I
 
-.method public static foo(I;)I
-		load 3y
-		load 3y
-		ineg
-		istore 3
-		load 3y
-		bipush 5
-		istore 3
-		load 3y
-		iinc
-		load 3y
-		ifeq Label_9
-		pop
-		iconst_0
-		goto Label_9_End
-	Label_9:
-		pop
-		iconst_1
-	Label_9_End:
-		iconst_0
-		if_icmpeq Label_9
-		iconst_0
-		goto Label_9_End:
-	Label_9:
-		iconst_1
-		if_icmplt Label_9_End:
-		ifeq Label_False_9
-		iconst_1
-		ifeq Label_False_9
-		iconst_1
-		goto Label_9_End
-	Label_False_9:
-		iconst_0
-	Label_9_End:
-		load 2x
-		iconst_1
-		istore 2
-		load 2x
-		bipush 4
-		istore 2
-		ifeq Label_9
-		goto Label_9_EndLabel_9:
-		Label_9_End:
-	Label_Cond_16:
-		load 3y
-		iconst_1
-		if_icmpeq Label_16
-		iconst_0
-		goto Label_16_End:
-	Label_16:
-		iconst_1
-		if_icmplt Label_16_End:
-		ifeqLabel_16_End
-		load 2x
-		iconst_1
-		istore 2
-		gotoLabel_Cond_16
-	Label_16_End:
-		iconst_0
-		ireturn
-
-.method public static OnInit(L/trade?)V
-		iconst_3
-		invokevirtual Program/foo(I;)I
+.method public static OnInit(LTrade;)V
+.limit stack 128
+.limit locals 128
+		new Order
+		dup
+		ldc "SELL"
 		bipush 100
 		bipush 100
 		bipush 10
-		invokevirtual Program/Order(?)?
-		astore 3
+		invokevirtual Program/Order(V;I;I;I;)Order
+		astore_3
+		return
+.end method
 
-.method public static OnInit(L/trade?)V
-		iconst_2
-		astore 3
-
-.method public static OnStart(L/trade?)V
-
-.method public static main()V
-		bipush 4
+.method public static OnInit(LTrade;)V
+.limit stack 128
+.limit locals 128
+		new Order
+		dup
+		ldc "BUY"
+		bipush 200
+		bipush 50
 		bipush 5
-		iadd
-		istore 1
-		ldc "username"
+		invokevirtual Program/Order(V;I;I;I;)Order
+		astore_3
+		new Order
+		dup
+		ldc "SELL"
+		bipush 100
+		bipush 100
+		bipush 10
+		invokevirtual Program/Order(V;I;I;I;)Order
+		astore 4
+		return
+.end method
+
+.method public static OnStart(LTrade;)V
+.limit stack 128
+.limit locals 128
+		aload_2
+		invokevirtual LTrade/Bid()V
+		fstore_3
+		aload_2
+		invokevirtual LTrade/Ask()V
+		istore 4
+		bipush 100
+		fstore 5
+		bipush 250
+		fstore 6
+		bipush 20
+		fstore 7
+		new Order
+		dup
+		ldc "BUY"
+		fload 5
+		fload 6
+		fload 7
+		invokevirtual Program/Order(V;F;F;F;)Order
+		astore 8
+		fload 6
+		fload 7
+		fdiv
+		fstore 9
+		return
+.end method
+
+.method public static OnStart(LTrade;)V
+.limit stack 128
+.limit locals 128
+		bipush 100
+		invokevirtual Program/GetCandle(I;)V
+		return
+.end method
+
+.method public static Main()V
+.limit stack 128
+.limit locals 128
+		ldc "admin"
+		astore_1
+		aload_1
 		ldc "password"
-		invokevirtual Program/Connect(?)?
-		ldc ""
-		invokevirtual Program/Observe(?)?
-		astore 2
-		ldc ""
-		invokevirtual Program/Observe(?)?
-		astore 3
+		invokevirtual Program/Connect(Ljava/lang/String;Ljava/lang/String;)V
+		ldc "USDETH"
+		invokevirtual Program/Observe(Ljava/lang/String;)V
+		astore_2
+		ldc "IRRETH"
+		invokevirtual Program/Observe(Ljava/lang/String;)V
+		astore_3
+		return
+.end method
