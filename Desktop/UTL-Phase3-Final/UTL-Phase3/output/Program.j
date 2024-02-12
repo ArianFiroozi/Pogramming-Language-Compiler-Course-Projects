@@ -17,8 +17,16 @@
 		bipush 100
 		bipush 100
 		bipush 10
-		invokevirtual Program/Order(V;I;I;I;)Order
+		invokespecial Program/Order(V;I;I;I;)Order
 		astore_3
+		aload_0
+		getfield balance I
+		iconst_1
+		iadd
+		istore 4
+		aload_0
+		iconst_0
+		putfield tick_counts I
 		return
 .end method
 
@@ -31,7 +39,7 @@
 		bipush 200
 		bipush 50
 		bipush 5
-		invokevirtual Program/Order(V;I;I;I;)Order
+		invokespecial Program/Order(V;I;I;I;)Order
 		astore_3
 		new Order
 		dup
@@ -39,7 +47,7 @@
 		bipush 100
 		bipush 100
 		bipush 10
-		invokevirtual Program/Order(V;I;I;I;)Order
+		invokespecial Program/Order(V;I;I;I;)Order
 		astore 4
 		return
 .end method
@@ -47,30 +55,30 @@
 .method public static OnStart(LTrade;)V
 .limit stack 128
 .limit locals 128
-		aload_2
+		aload_1
 		invokevirtual LTrade/Bid()V
-		fstore_3
-		aload_2
+		fstore_2
+		aload_1
 		invokevirtual LTrade/Ask()V
-		istore 4
+		istore_3
 		bipush 100
-		fstore 5
+		fstore 4
 		bipush 250
-		fstore 6
+		fstore 5
 		bipush 20
-		fstore 7
+		fstore 6
 		new Order
 		dup
 		ldc "BUY"
+		fload 4
 		fload 5
 		fload 6
-		fload 7
-		invokevirtual Program/Order(V;F;F;F;)Order
-		astore 8
+		invokespecial Program/Order(V;F;F;F;)Order
+		astore 7
+		fload 5
 		fload 6
-		fload 7
 		fdiv
-		fstore 9
+		fstore 8
 		return
 .end method
 
@@ -89,12 +97,12 @@
 		astore_1
 		aload_1
 		ldc "password"
-		invokevirtual Program/Connect(Ljava/lang/String;Ljava/lang/String;)V
+		invokestatic Program/Connect(Ljava/lang/String;Ljava/lang/String;)V
 		ldc "USDETH"
-		invokevirtual Program/Observe(Ljava/lang/String;)V
+		invokestatic Program/Observe(Ljava/lang/String;)V
 		astore_2
 		ldc "IRRETH"
-		invokevirtual Program/Observe(Ljava/lang/String;)V
+		invokestatic Program/Observe(Ljava/lang/String;)V
 		astore_3
 		return
 .end method

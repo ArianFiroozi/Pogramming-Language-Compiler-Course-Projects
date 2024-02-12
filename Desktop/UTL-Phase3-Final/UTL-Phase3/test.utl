@@ -3,6 +3,8 @@ int tick_counts = 0;
 
 void OnInit(Trade t1) {
     Order o3 = Order(SELL, 100, 100, 10);
+    int x = balance + 1;
+    tick_counts = 0;
 }
 
 void OnInit(Trade t3) {

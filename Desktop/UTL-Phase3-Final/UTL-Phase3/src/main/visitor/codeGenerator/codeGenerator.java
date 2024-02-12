@@ -52,6 +52,7 @@ public class codeGenerator extends Visitor<String> {
     private Dictionary<String, Integer> name_to_id;
     private Dictionary<String, Type> name_to_type;
     private Dictionary<String, Type> root_n2t;
+    private Dictionary<String, Type> fields;
 
     private Dictionary<String, ArrayList<Type>> funcList;
     Integer stack_count;
@@ -147,7 +148,7 @@ public class codeGenerator extends Visitor<String> {
         else if (t instanceof StringType)
             return "Ljava/lang/String";
         else if (t instanceof TradeType)
-            return "I";
+            return "LTrade";
         else
             return "V";
         // complex types unhandled
@@ -165,6 +166,7 @@ public class codeGenerator extends Visitor<String> {
         name_to_id = new Hashtable<>();
         name_to_type = new Hashtable<>();
         root_n2t = name_to_type;
+        fields = new Hashtable<>();
 
         funcList = new Hashtable<>();
         createFile(program.toString());
@@ -176,9 +178,10 @@ public class codeGenerator extends Visitor<String> {
         addField("inits", "Ljava/util/ArrayList");
         addField("starts", "Ljava/util/ArrayList");
         addField("functions", "Ljava/util/ArrayList");
-        addField("programMainDeclaration", "Ljava/util/MainDeclaration"); // not sure about type
 
-        stack_count = 0;
+        addField("programMainDeclaration", "Ljava/util/MainDeclaration"); 
+
+        stack_count = 1;
         label_count = 1;
 
         for (VarDeclaration varDeclaration : program.getVars())
@@ -198,7 +201,7 @@ public class codeGenerator extends Visitor<String> {
         // todo
         // invoke
         int old_stack_count = stack_count;
-        stack_count = 0;
+        stack_count = 1;
         Dictionary<String, Integer> old_n2i = name_to_id;
         Dictionary<String, Type> old_n2t = name_to_type;
         name_to_id = new Hashtable<>();
@@ -241,7 +244,7 @@ public class codeGenerator extends Visitor<String> {
         // todo
         // invoke
         int old_stack_count = stack_count;
-        stack_count = 0;
+        stack_count = 1;
         Dictionary<String, Integer> old_n2i = name_to_id;
         Dictionary<String, Type> old_n2t = name_to_type;
         name_to_id = new Hashtable<>();
@@ -267,7 +270,7 @@ public class codeGenerator extends Visitor<String> {
         // todo
 
         int old_stack_count = stack_count;
-        stack_count = 0;
+        stack_count = 1;
         Dictionary<String, Integer> old_n2i = name_to_id;
         Dictionary<String, Type> old_n2t = name_to_type;
         name_to_id = new Hashtable<>();
@@ -535,6 +538,7 @@ public class codeGenerator extends Visitor<String> {
 
         if (root_n2t == name_to_type) {
             addField(varDeclaration.getIdentifier().getName(), makeTypeSignature(varDeclaration.getType()));
+            fields.put(varDeclaration.getIdentifier().getName(), varDeclaration.getType());
             return null;
         }
 
@@ -583,11 +587,25 @@ public class codeGenerator extends Visitor<String> {
     public String visit(AssignStmt assignmentStmt) {
         // todo
         // assignmentStmt.getLValue().accept(this);
-        assignmentStmt.getRValue().accept(this);
         Identifier id = (Identifier) assignmentStmt.getLValue();
 
         // cannot assign with operators due to incomplete grammar
-        int ID = name_to_id.get(id.getName());
+        int ID = -1;
+        
+        try{
+            ID = name_to_id.get(id.getName());
+        }
+        catch (Exception e) {
+            Type type = fields.get(id.getName());
+                
+            addCommand("aload_0");
+            assignmentStmt.getRValue().accept(this);
+            addCommand("putfield " + id.getName() + " " + makeTypeSignature(type));
+            return null;
+        }
+
+        assignmentStmt.getRValue().accept(this);
+
         if (name_to_type.get(id.getName()) instanceof IntType || name_to_type.get(id.getName()) instanceof BoolType)
             if (ID > 3)
                 addCommand("istore " + name_to_id.get(id.getName()));
@@ -706,7 +724,12 @@ public class codeGenerator extends Visitor<String> {
             // args = "?";
         }
 
-        addCommand("invokevirtual Program/" + funcCall.getFunctionName().getName() + "(" + args + ")" + ret_type);
+        if (funcCall.getFunctionName().getName().equals("Order"))
+            addCommand("invokespecial Program/" + funcCall.getFunctionName().getName() + "(" + args + ")" + ret_type);
+        else if (funcCall.getFunctionName().getName().equals("Observe") || funcCall.getFunctionName().getName().equals("Connect"))
+            addCommand("invokestatic Program/" + funcCall.getFunctionName().getName() + "(" + args + ")" + ret_type);
+        else
+            addCommand("invokevirtual Program/" + funcCall.getFunctionName().getName() + "(" + args + ")" + ret_type);
         return null;
     }
 
@@ -737,13 +760,22 @@ public class codeGenerator extends Visitor<String> {
     @Override
     public String visit(Identifier id) {
         String commands = "";
-        int ID = name_to_id.get(id.getName());
         // todo
         try {
             Type type = name_to_type.get(id.getName());
+            if (type == null)
+            {
+                type = fields.get(id.getName());
+                if (type == null) return null;
+                addCommand("aload_0");
+                addCommand("getfield " + id.getName() + " " + makeTypeSignature(type));
+                return null;
+            }
             if (type instanceof NullType) {
                 addCommand("load" + name_to_id.get(id.getName()));
-            } else {
+            } 
+            else {
+                int ID = name_to_id.get(id.getName());
                 if (type instanceof IntType || type instanceof BoolType)
                     if (ID > 3)
                         addCommand("iload " + name_to_id.get(id.getName()));
@@ -761,11 +793,9 @@ public class codeGenerator extends Visitor<String> {
                         addCommand("aload " + name_to_id.get(id.getName()));
                     else
                         addCommand("aload_" + name_to_id.get(id.getName()));
-
             }
-        } catch (Exception e) {
-            System.out.println("fuck java" + id.getName() + e.getMessage());
-        }
+
+        } catch (Exception e) { }
         // addCommand("load " + name_to_id.get(id.getName()) + id.getName());
         return commands;
     }
